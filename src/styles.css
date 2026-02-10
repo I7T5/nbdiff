@@ -136,22 +136,50 @@ body {
 .diff-line {
   padding: 0 12px;
   min-height: 18px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
+.diff-line.unchanged {
+  color: #d4d4d4;
+}
+
+/* Fully added line (exists only in submission) */
 .diff-line.added {
-  background: rgba(35, 134, 54, 0.2);
+  background: rgba(35, 134, 54, 0.25);
   color: #98c379;
 }
 
+/* Fully removed line (exists only in key) */
 .diff-line.removed {
-  background: rgba(218, 54, 51, 0.2);
+  background: rgba(218, 54, 51, 0.25);
   color: #e06c75;
   text-decoration: line-through;
 }
 
+/* Modified line (exists on both sides with differences) */
 .diff-line.modified {
-  background: rgba(227, 160, 24, 0.15);
-  color: #e5c07b;
+  background: rgba(227, 160, 24, 0.12);
+  color: #d4d4d4;
+}
+
+/* Character-level: inserted characters (right/submission side) */
+.char-inserted {
+  background: rgba(35, 134, 54, 0.5);
+  color: #73e09b;
+  border-radius: 2px;
+  padding: 0 1px;
+  font-weight: 600;
+}
+
+/* Character-level: deleted characters (left/key side) */
+.char-deleted {
+  background: rgba(218, 54, 51, 0.5);
+  color: #f0a0a0;
+  border-radius: 2px;
+  padding: 0 1px;
+  text-decoration: line-through;
+  font-weight: 600;
 }
 
 /* Loading spinner */
