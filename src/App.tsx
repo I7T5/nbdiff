@@ -44,6 +44,55 @@ function App() {
 
   const cursorSideRef = useRef<"left" | "right">("left");
 
+  // Synchronized scrolling via native passive listeners.
+  // We track which panel the user is actively scrolling (via pointer/wheel)
+  // and only ever sync FROM that panel, avoiding feedback-loop drift.
+  const leftScrollRef = useRef<HTMLDivElement | null>(null);
+  const rightScrollRef = useRef<HTMLDivElement | null>(null);
+  const activePanel = useRef<"left" | "right" | null>(null);
+
+  useEffect(() => {
+    const leftEl = leftScrollRef.current;
+    const rightEl = rightScrollRef.current;
+    if (!leftEl || !rightEl) return;
+
+    function syncScroll(source: HTMLDivElement, target: HTMLDivElement) {
+      const maxScroll = source.scrollHeight - source.clientHeight;
+      const ratio = maxScroll > 0 ? source.scrollTop / maxScroll : 0;
+      const targetMax = target.scrollHeight - target.clientHeight;
+      target.scrollTop = Math.round(ratio * targetMax);
+    }
+
+    const onLeftScroll = () => {
+      if (activePanel.current === "left") syncScroll(leftEl, rightEl);
+    };
+    const onRightScroll = () => {
+      if (activePanel.current === "right") syncScroll(rightEl, leftEl);
+    };
+
+    // Mark which panel the user is interacting with
+    const onLeftEnter = () => { activePanel.current = "left"; };
+    const onRightEnter = () => { activePanel.current = "right"; };
+    const onLeftWheel = () => { activePanel.current = "left"; };
+    const onRightWheel = () => { activePanel.current = "right"; };
+
+    leftEl.addEventListener("scroll", onLeftScroll, { passive: true });
+    rightEl.addEventListener("scroll", onRightScroll, { passive: true });
+    leftEl.addEventListener("pointerenter", onLeftEnter);
+    rightEl.addEventListener("pointerenter", onRightEnter);
+    leftEl.addEventListener("wheel", onLeftWheel, { passive: true });
+    rightEl.addEventListener("wheel", onRightWheel, { passive: true });
+
+    return () => {
+      leftEl.removeEventListener("scroll", onLeftScroll);
+      rightEl.removeEventListener("scroll", onRightScroll);
+      leftEl.removeEventListener("pointerenter", onLeftEnter);
+      rightEl.removeEventListener("pointerenter", onRightEnter);
+      leftEl.removeEventListener("wheel", onLeftWheel);
+      rightEl.removeEventListener("wheel", onRightWheel);
+    };
+  });
+
   // Extract single file
   const extractAndSet = useCallback(
     async (side: "left" | "right", filePath: string) => {
@@ -219,23 +268,65 @@ function App() {
     }
   }, []);
 
+  // Delete an input block by index from either side's content
+  const handleDeleteBlock = useCallback(
+    (side: "left" | "right", blockIndex: number) => {
+      const content = side === "left" ? leftContent : rightContent;
+      if (!content) return;
+
+      const setContent = side === "left" ? setLeftContent : setRightContent;
+
+      // Split content into blocks by "(* Input N *)" headers
+      const blocks: { header: string; body: string }[] = [];
+      const lines = content.split("\n");
+      let currentBlock: { header: string; body: string } | null = null;
+
+      for (const line of lines) {
+        if (/^\(\* Input \d+ \*\)$/.test(line.trim())) {
+          if (currentBlock) blocks.push(currentBlock);
+          currentBlock = { header: line, body: "" };
+        } else if (currentBlock) {
+          currentBlock.body += (currentBlock.body ? "\n" : "") + line;
+        }
+      }
+      if (currentBlock) blocks.push(currentBlock);
+
+      if (blockIndex < 0 || blockIndex >= blocks.length) return;
+
+      // Remove the block
+      blocks.splice(blockIndex, 1);
+
+      if (blocks.length === 0) {
+        setContent("");
+        return;
+      }
+
+      // Renumber and reassemble (trim trailing whitespace from each body
+      // to avoid accumulating extra blank lines on repeated deletions)
+      const newContent = blocks
+        .map((block, i) => {
+          return `(* Input ${i + 1} *)\n${block.body.trimEnd()}`;
+        })
+        .join("\n\n");
+
+      setContent(newContent);
+    },
+    [leftContent, rightContent]
+  );
+
   const showDiff = leftContent !== null && rightContent !== null;
 
   return (
     <div className="app">
-      <div className="header">
-        <h1>NBDiff</h1>
-        {error && (
-          <span style={{ color: "#e06c75", fontSize: 12 }}>{error}</span>
-        )}
-      </div>
+      {error && (
+        <div className="error-toast">{error}</div>
+      )}
       <div className="panels">
         {/* Left Panel - Key */}
         <div className="panel">
           <div className="panel-header">
-            <span>
-              Key / Solution{" "}
-              {leftFile && <span className="filename">— {leftFile}</span>}
+            <span className="panel-title">
+              {leftFile ? leftFile : "Key"}
             </span>
             {leftContent !== null && (
               <button
@@ -246,11 +337,17 @@ function App() {
               </button>
             )}
           </div>
+          {/* Spacer to match NavigationControls height on right panel */}
+          {rightIsFolder && rightSubmissions && showDiff && (
+            <div className="nav-spacer" />
+          )}
           {showDiff ? (
             <DiffView
               leftContent={leftContent}
               rightContent={rightContent}
               side="left"
+              onDeleteBlock={handleDeleteBlock}
+              scrollRef={leftScrollRef}
             />
           ) : leftLoading ? (
             <div className="dropzone">
@@ -280,11 +377,12 @@ function App() {
         {/* Right Panel - Submission(s) */}
         <div className="panel">
           <div className="panel-header">
-            <span>
-              {rightIsFolder ? "Student Submissions" : "Student Submission"}{" "}
-              {rightFile && !rightIsFolder && (
-                <span className="filename">— {rightFile}</span>
-              )}
+            <span className="panel-title">
+              {rightIsFolder
+                ? rightFile || "Submissions"
+                : rightFile
+                  ? rightFile
+                  : "Submission"}
             </span>
             {rightContent !== null && (
               <button
@@ -316,6 +414,8 @@ function App() {
               leftContent={leftContent}
               rightContent={rightContent}
               side="right"
+              onDeleteBlock={handleDeleteBlock}
+              scrollRef={rightScrollRef}
             />
           ) : rightLoading ? (
             <div className="dropzone">

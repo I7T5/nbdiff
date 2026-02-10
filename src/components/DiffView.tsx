@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, type RefObject } from "react";
 import { diffLines, diffChars } from "diff";
 
 interface DiffViewProps {
   leftContent: string;
   rightContent: string;
   side: "left" | "right";
+  onDeleteBlock?: (side: "left" | "right", blockIndex: number) => void;
+  scrollRef?: RefObject<HTMLDivElement | null>;
 }
 
 // "modified" = line exists on both sides but with differences
@@ -18,6 +20,8 @@ interface Span {
 interface DiffLine {
   type: LineType;
   spans: Span[];
+  /** If this line is an input header, which block index it belongs to */
+  blockIndex?: number;
 }
 
 /**
@@ -38,14 +42,26 @@ function buildLines(
   const changes = diffLines(leftContent, rightContent);
   const result: DiffLine[] = [];
 
+  // Track block indices for the current side's content
+  const sideContent = side === "left" ? leftContent : rightContent;
+  const blockHeaders = findBlockHeaders(sideContent);
+
   let i = 0;
+  let currentLineNum = 0; // line number in the side's own content
+
   while (i < changes.length) {
     const c = changes[i];
 
     // --- unchanged block ---
     if (!c.added && !c.removed) {
       for (const line of splitBlock(c.value)) {
-        result.push({ type: "unchanged", spans: [{ text: line, type: "normal" }] });
+        const blockIdx = blockHeaders.get(currentLineNum);
+        result.push({
+          type: "unchanged",
+          spans: [{ text: line, type: "normal" }],
+          blockIndex: blockIdx,
+        });
+        currentLineNum++;
       }
       i++;
       continue;
@@ -75,34 +91,44 @@ function buildLines(
             if (d.added) continue;
             spans.push({ text: d.value, type: d.removed ? "deleted" : "normal" });
           }
-          result.push({ type: "modified", spans: ensureNonEmpty(spans) });
+          const blockIdx = blockHeaders.get(currentLineNum);
+          result.push({ type: "modified", spans: ensureNonEmpty(spans), blockIndex: blockIdx });
+          currentLineNum++;
         } else {
           const spans: Span[] = [];
           for (const d of charDiffs) {
             if (d.removed) continue;
             spans.push({ text: d.value, type: d.added ? "inserted" : "normal" });
           }
-          result.push({ type: "modified", spans: ensureNonEmpty(spans) });
+          const blockIdx = blockHeaders.get(currentLineNum);
+          result.push({ type: "modified", spans: ensureNonEmpty(spans), blockIndex: blockIdx });
+          currentLineNum++;
         }
       }
 
       // Leftover removed lines (no matching add)
       if (side === "left") {
         for (let p = pairCount; p < removedLines.length; p++) {
+          const blockIdx = blockHeaders.get(currentLineNum);
           result.push({
             type: "removed",
             spans: [{ text: removedLines[p], type: "deleted" }],
+            blockIndex: blockIdx,
           });
+          currentLineNum++;
         }
       }
 
       // Leftover added lines (no matching remove)
       if (side === "right") {
         for (let p = pairCount; p < addedLines.length; p++) {
+          const blockIdx = blockHeaders.get(currentLineNum);
           result.push({
             type: "added",
             spans: [{ text: addedLines[p], type: "inserted" }],
+            blockIndex: blockIdx,
           });
+          currentLineNum++;
         }
       }
 
@@ -113,10 +139,13 @@ function buildLines(
     if (c.added) {
       if (side === "right") {
         for (const line of splitBlock(c.value)) {
+          const blockIdx = blockHeaders.get(currentLineNum);
           result.push({
             type: "added",
             spans: [{ text: line, type: "inserted" }],
+            blockIndex: blockIdx,
           });
+          currentLineNum++;
         }
       }
       i++;
@@ -127,6 +156,23 @@ function buildLines(
   }
 
   return result;
+}
+
+/**
+ * Find lines that are input block headers like "(* Input N *)"
+ * Returns a map of lineNumber → blockIndex (0-based).
+ */
+function findBlockHeaders(content: string): Map<number, number> {
+  const map = new Map<number, number>();
+  const lines = content.split("\n");
+  let blockIdx = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\(\* Input \d+ \*\)$/.test(lines[i].trim())) {
+      map.set(i, blockIdx);
+      blockIdx++;
+    }
+  }
+  return map;
 }
 
 /** Split a diff block value into lines, stripping the trailing newline. */
@@ -142,14 +188,14 @@ function ensureNonEmpty(spans: Span[]): Span[] {
   return spans;
 }
 
-export default function DiffView({ leftContent, rightContent, side }: DiffViewProps) {
+export default function DiffView({ leftContent, rightContent, side, onDeleteBlock, scrollRef }: DiffViewProps) {
   const lines = useMemo(
     () => buildLines(leftContent, rightContent, side),
     [leftContent, rightContent, side]
   );
 
   return (
-    <div className="content">
+    <div className="content" ref={scrollRef}>
       {lines.map((line, i) => (
         <div key={i} className={`diff-line ${line.type}`}>
           {line.spans.map((span, j) => (
@@ -158,6 +204,18 @@ export default function DiffView({ leftContent, rightContent, side }: DiffViewPr
             </span>
           ))}
           {line.spans.every((s) => s.text === "") && "\u00A0"}
+          {line.blockIndex !== undefined && onDeleteBlock && (
+            <button
+              className="delete-block-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteBlock(side, line.blockIndex!);
+              }}
+              title={`Delete this input block from ${side === "left" ? "key" : "submission"}`}
+            >
+              ×
+            </button>
+          )}
         </div>
       ))}
     </div>
