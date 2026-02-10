@@ -4,7 +4,8 @@ Extract input cells from Mathematica notebooks.
 
 Usage:
     python extract-inputs.py --single <file.nb>          # Single file, JSON to stdout
-    python extract-inputs.py <input_dir> <output_dir>    # Directory mode
+    python extract-inputs.py --batch <directory>          # Batch mode, JSON to stdout
+    python extract-inputs.py <input_dir> <output_dir>    # Directory mode (files to disk)
 
 Requirements:
     pip install wolframclient
@@ -195,6 +196,74 @@ def process_directory(input_dir, output_dir):
         print("Wolfram Language session terminated")
 
 
+def process_batch_directory(dir_path):
+    """
+    Process all .nb files in a directory recursively and output JSON to stdout.
+    Uses a single Wolfram session for all files.
+    """
+    path = Path(dir_path)
+    if not path.exists():
+        print(f"Error: Directory '{dir_path}' does not exist", file=sys.stderr)
+        sys.exit(1)
+    if not path.is_dir():
+        print(f"Error: '{dir_path}' is not a directory", file=sys.stderr)
+        sys.exit(1)
+
+    nb_files = sorted(path.rglob("*.nb"))
+
+    if not nb_files:
+        print(json.dumps({"files": [], "totalFiles": 0, "successful": 0, "failed": 0}))
+        return
+
+    print(f"Found {len(nb_files)} notebook(s)", file=sys.stderr)
+    print("Starting Wolfram Language session...", file=sys.stderr)
+
+    try:
+        session = WolframLanguageSession()
+    except Exception as e:
+        print(f"Error: Could not start Wolfram Language session: {e}",
+              file=sys.stderr)
+        sys.exit(1)
+
+    results = []
+    successful = 0
+    failed = 0
+
+    try:
+        for nb_file in nb_files:
+            relative = str(nb_file.relative_to(path))
+            print(f"Processing: {relative}", file=sys.stderr)
+
+            try:
+                inputs = extract_inputs_from_notebook(session, nb_file)
+                if inputs:
+                    successful += 1
+                else:
+                    failed += 1
+                results.append({
+                    "relativePath": relative,
+                    "inputs": inputs,
+                    "error": None
+                })
+            except Exception as e:
+                failed += 1
+                results.append({
+                    "relativePath": relative,
+                    "inputs": [],
+                    "error": str(e)
+                })
+    finally:
+        session.terminate()
+
+    output = {
+        "files": results,
+        "totalFiles": len(nb_files),
+        "successful": successful,
+        "failed": failed
+    }
+    print(json.dumps(output, ensure_ascii=False))
+
+
 def process_single_file(nb_path):
     """
     Process a single .nb file and print extracted inputs as JSON to stdout.
@@ -230,6 +299,7 @@ def main():
         epilog="""
 Examples:
   python extract-inputs.py --single notebook.nb
+  python extract-inputs.py --batch ./submissions
   python extract-inputs.py ./notebooks ./outputs
         """
     )
@@ -238,6 +308,12 @@ Examples:
         '--single',
         metavar='FILE',
         help='Extract inputs from a single .nb file (JSON to stdout)'
+    )
+
+    parser.add_argument(
+        '--batch',
+        metavar='DIR',
+        help='Extract inputs from all .nb files in directory (JSON to stdout)'
     )
 
     parser.add_argument(
@@ -256,6 +332,8 @@ Examples:
 
     if args.single:
         process_single_file(args.single)
+    elif args.batch:
+        process_batch_directory(args.batch)
     elif args.input_dir and args.output_dir:
         process_directory(args.input_dir, args.output_dir)
     else:

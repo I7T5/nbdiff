@@ -3,6 +3,29 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { open } from "@tauri-apps/plugin-dialog";
 import DiffView from "./components/DiffView";
+import NavigationControls from "./components/NavigationControls";
+
+interface Submission {
+  filename: string;
+  relativePath: string;
+  content: string;
+  error: string | null;
+}
+
+interface BatchResult {
+  files: {
+    relativePath: string;
+    inputs: string[];
+    error: string | null;
+  }[];
+  totalFiles: number;
+  successful: number;
+  failed: number;
+}
+
+function formatInputs(inputs: string[]): string {
+  return inputs.map((input, i) => `(* Input ${i + 1} *)\n${input}`).join("\n\n");
+}
 
 function App() {
   const [leftContent, setLeftContent] = useState<string | null>(null);
@@ -14,14 +37,26 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<"left" | "right" | null>(null);
 
-  // Track which side the cursor is on for drop targeting
+  // Multi-file folder state (right panel only)
+  const [rightSubmissions, setRightSubmissions] = useState<Submission[] | null>(null);
+  const [rightCurrentIndex, setRightCurrentIndex] = useState(0);
+  const [rightIsFolder, setRightIsFolder] = useState(false);
+
   const cursorSideRef = useRef<"left" | "right">("left");
 
+  // Extract single file
   const extractAndSet = useCallback(
     async (side: "left" | "right", filePath: string) => {
       const setLoading = side === "left" ? setLeftLoading : setRightLoading;
       const setContent = side === "left" ? setLeftContent : setRightContent;
       const setFile = side === "left" ? setLeftFile : setRightFile;
+
+      // If dropping single file on right, clear folder state
+      if (side === "right") {
+        setRightSubmissions(null);
+        setRightCurrentIndex(0);
+        setRightIsFolder(false);
+      }
 
       setLoading(true);
       setError(null);
@@ -30,12 +65,8 @@ function App() {
         const result = await invoke<string[]>("extract_inputs", {
           path: filePath,
         });
-        const text = result
-          .map((input, i) => `(* Input ${i + 1} *)\n${input}`)
-          .join("\n\n");
-        setContent(text);
-        const name = filePath.split("/").pop() || filePath;
-        setFile(name);
+        setContent(formatInputs(result));
+        setFile(filePath.split("/").pop() || filePath);
       } catch (e) {
         setError(`Error: ${e}`);
         setContent(null);
@@ -47,12 +78,76 @@ function App() {
     []
   );
 
-  // Listen for Tauri drag-drop events (OS-level file drops)
+  // Extract all files from folder (right panel only)
+  const extractBatchAndSet = useCallback(async (dirPath: string) => {
+    setRightLoading(true);
+    setError(null);
+    setRightContent(null);
+    setRightFile(null);
+
+    try {
+      const result = await invoke<BatchResult>("extract_inputs_batch", {
+        path: dirPath,
+      });
+
+      if (result.files.length === 0) {
+        setError("No .nb files found in folder");
+        setRightLoading(false);
+        return;
+      }
+
+      const submissions: Submission[] = result.files.map((file) => ({
+        filename: file.relativePath.split("/").pop() || file.relativePath,
+        relativePath: file.relativePath,
+        content: formatInputs(file.inputs),
+        error: file.error,
+      }));
+
+      setRightSubmissions(submissions);
+      setRightCurrentIndex(0);
+      setRightIsFolder(true);
+      setRightContent(submissions[0].content);
+      setRightFile(submissions[0].relativePath);
+    } catch (e) {
+      setError(`Batch extraction failed: ${e}`);
+    } finally {
+      setRightLoading(false);
+    }
+  }, []);
+
+  // Update right content when navigating between submissions
+  useEffect(() => {
+    if (rightSubmissions && rightIsFolder) {
+      const current = rightSubmissions[rightCurrentIndex];
+      setRightContent(current.content);
+      setRightFile(current.relativePath);
+    }
+  }, [rightCurrentIndex, rightSubmissions, rightIsFolder]);
+
+  // Arrow key navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!rightIsFolder || !rightSubmissions) return;
+
+      if (e.key === "ArrowLeft" && rightCurrentIndex > 0) {
+        setRightCurrentIndex((prev) => prev - 1);
+      } else if (
+        e.key === "ArrowRight" &&
+        rightCurrentIndex < rightSubmissions.length - 1
+      ) {
+        setRightCurrentIndex((prev) => prev + 1);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [rightIsFolder, rightSubmissions, rightCurrentIndex]);
+
+  // Listen for Tauri drag-drop events
   useEffect(() => {
     const webview = getCurrentWebviewWindow();
-    const unlisten = webview.onDragDropEvent((event) => {
+    const unlisten = webview.onDragDropEvent(async (event) => {
       if (event.payload.type === "over") {
-        // Determine which side based on x position
         const x = event.payload.position.x;
         const midpoint = window.innerWidth / 2;
         const side = x < midpoint ? "left" : "right";
@@ -61,11 +156,32 @@ function App() {
       } else if (event.payload.type === "drop") {
         setDragOver(null);
         const paths: string[] = event.payload.paths;
+        if (paths.length === 0) return;
+
+        const firstPath = paths[0];
+        const side = cursorSideRef.current;
+
+        // Check if it's a directory (only meaningful for right panel)
+        if (side === "right") {
+          try {
+            const isDir = await invoke<boolean>("is_directory", {
+              path: firstPath,
+            });
+            if (isDir) {
+              extractBatchAndSet(firstPath);
+              return;
+            }
+          } catch {
+            // Fall through to single file handling
+          }
+        }
+
+        // Single file handling
         const nbFile = paths.find((p) => p.endsWith(".nb"));
         if (nbFile) {
-          extractAndSet(cursorSideRef.current, nbFile);
+          extractAndSet(side, nbFile);
         } else {
-          setError("Please drop a .nb file");
+          setError("Please drop a .nb file or folder");
         }
       } else if (event.payload.type === "leave") {
         setDragOver(null);
@@ -75,7 +191,7 @@ function App() {
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [extractAndSet]);
+  }, [extractAndSet, extractBatchAndSet]);
 
   const handleOpenDialog = useCallback(
     async (side: "left" | "right") => {
@@ -97,6 +213,9 @@ function App() {
     } else {
       setRightContent(null);
       setRightFile(null);
+      setRightSubmissions(null);
+      setRightCurrentIndex(0);
+      setRightIsFolder(false);
     }
   }, []);
 
@@ -158,12 +277,14 @@ function App() {
           )}
         </div>
 
-        {/* Right Panel - Submission */}
+        {/* Right Panel - Submission(s) */}
         <div className="panel">
           <div className="panel-header">
             <span>
-              Student Submission{" "}
-              {rightFile && <span className="filename">— {rightFile}</span>}
+              {rightIsFolder ? "Student Submissions" : "Student Submission"}{" "}
+              {rightFile && !rightIsFolder && (
+                <span className="filename">— {rightFile}</span>
+              )}
             </span>
             {rightContent !== null && (
               <button
@@ -174,6 +295,22 @@ function App() {
               </button>
             )}
           </div>
+          {/* Navigation controls for folder mode */}
+          {rightIsFolder && rightSubmissions && (
+            <NavigationControls
+              currentIndex={rightCurrentIndex}
+              totalFiles={rightSubmissions.length}
+              currentFile={rightSubmissions[rightCurrentIndex].relativePath}
+              onPrevious={() =>
+                setRightCurrentIndex((prev) => Math.max(0, prev - 1))
+              }
+              onNext={() =>
+                setRightCurrentIndex((prev) =>
+                  Math.min(rightSubmissions.length - 1, prev + 1)
+                )
+              }
+            />
+          )}
           {showDiff ? (
             <DiffView
               leftContent={leftContent}
@@ -184,7 +321,11 @@ function App() {
             <div className="dropzone">
               <div className="loading">
                 <div className="spinner" />
-                <span>Extracting inputs...</span>
+                <span>
+                  {rightIsFolder
+                    ? "Extracting inputs from folder..."
+                    : "Extracting inputs..."}
+                </span>
               </div>
             </div>
           ) : rightContent !== null ? (
@@ -197,9 +338,9 @@ function App() {
               onClick={() => handleOpenDialog("right")}
             >
               <div className="dropzone-label">
-                <div className="icon">📄</div>
-                <p>Drop Student Submission here</p>
-                <p className="hint">.nb files — or click to browse</p>
+                <div className="icon">📁</div>
+                <p>Drop Submission or Folder here</p>
+                <p className="hint">.nb file or folder — or click to browse</p>
               </div>
             </div>
           )}

@@ -221,3 +221,51 @@ body {
   color: #ccc;
   background: #3c3c3c;
 }
+
+/* Navigation controls for folder mode */
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: #252526;
+  border-bottom: 1px solid #3c3c3c;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.nav-btn {
+  background: #3c3c3c;
+  border: none;
+  color: #cccccc;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  line-height: 1.4;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: #4c4c4c;
+  color: #fff;
+}
+
+.nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.nav-counter {
+  color: #969696;
+  font-variant-numeric: tabular-nums;
+  min-width: 50px;
+  text-align: center;
+}
+
+.nav-filename {
+  color: #cccccc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}

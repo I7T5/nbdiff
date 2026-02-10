@@ -1,5 +1,22 @@
 use tauri_plugin_shell::ShellExt;
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct BatchFileResult {
+    #[serde(rename = "relativePath")]
+    relative_path: String,
+    inputs: Vec<String>,
+    error: Option<String>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct BatchResult {
+    files: Vec<BatchFileResult>,
+    #[serde(rename = "totalFiles")]
+    total_files: usize,
+    successful: usize,
+    failed: usize,
+}
+
 #[tauri::command]
 async fn extract_inputs(app: tauri::AppHandle, path: String) -> Result<Vec<String>, String> {
     let shell = app.shell();
@@ -23,6 +40,38 @@ async fn extract_inputs(app: tauri::AppHandle, path: String) -> Result<Vec<Strin
     Ok(inputs)
 }
 
+#[tauri::command]
+async fn extract_inputs_batch(
+    app: tauri::AppHandle,
+    path: String,
+) -> Result<BatchResult, String> {
+    let shell = app.shell();
+    let output = shell
+        .sidecar("extract-inputs")
+        .map_err(|e| format!("Failed to create sidecar command: {}", e))?
+        .args(["--batch", &path])
+        .output()
+        .await
+        .map_err(|e| format!("Failed to run sidecar: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("extract-inputs batch failed: {}", stderr));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let result: BatchResult =
+        serde_json::from_str(&stdout).map_err(|e| format!("Failed to parse batch JSON: {}", e))?;
+
+    Ok(result)
+}
+
+#[tauri::command]
+fn is_directory(path: String) -> Result<bool, String> {
+    let p = std::path::Path::new(&path);
+    Ok(p.is_dir())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -38,7 +87,11 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![extract_inputs])
+        .invoke_handler(tauri::generate_handler![
+            extract_inputs,
+            extract_inputs_batch,
+            is_directory
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
