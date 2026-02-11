@@ -83,3 +83,6 @@ nbdiff/
 - [x] Accept a folder of student submissions on the right panel
 - [x] Arrow-key navigation between students for rapid grading
 - [x] Word-level diff highlighting within changed lines
+- [ ] Add text field for each student submittion for adding quick grader notes, with an option to automatically save notes to directory
+- [ ] Display multiple student submission windows at once, the lines of each one aligning with the key window
+- [ ] Display multiple rows of key/submissions
