@@ -314,29 +314,219 @@ function App() {
     [leftContent, rightContent]
   );
 
+  // Block hover state (shared across both panels by blockIndex)
+  const [hoveredBlock, setHoveredBlock] = useState<number | null>(null);
+
+  // Block selection state
+  const [selectedBlock, setSelectedBlock] = useState<{ side: "left" | "right"; blockIndex: number } | null>(null);
+
+  const handleSelectBlock = useCallback((side: "left" | "right", blockIndex: number) => {
+    setSelectedBlock((prev) => {
+      // Toggle off if clicking the same block
+      if (prev && prev.side === side && prev.blockIndex === blockIndex) return null;
+      return { side, blockIndex };
+    });
+  }, []);
+
+  // Delete selected block on Delete/Backspace key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selectedBlock) return;
+      // Don't intercept if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        handleDeleteBlock(selectedBlock.side, selectedBlock.blockIndex);
+        setSelectedBlock(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedBlock, handleDeleteBlock]);
+
+  // Clear selection when clicking outside blocks
+  useEffect(() => {
+    const handleClick = () => setSelectedBlock(null);
+    // Use capture phase so we can check if a block was clicked first
+    // The block click handler calls stopPropagation, so this only fires for non-block clicks
+    window.addEventListener("click", handleClick);
+    return () => window.removeEventListener("click", handleClick);
+  }, []);
+
+  // Resizable panels
+  const [splitPercent, setSplitPercent] = useState(50);
+  const panelsRef = useRef<HTMLDivElement | null>(null);
+  const isDraggingDivider = useRef(false);
+
+  const onDividerPointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    isDraggingDivider.current = true;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, []);
+
+  const onDividerPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDraggingDivider.current || !panelsRef.current) return;
+    const rect = panelsRef.current.getBoundingClientRect();
+    const pct = ((e.clientX - rect.left) / rect.width) * 100;
+    setSplitPercent(Math.max(20, Math.min(80, pct)));
+  }, []);
+
+  const onDividerPointerUp = useCallback(() => {
+    isDraggingDivider.current = false;
+  }, []);
+
+  // Header expansion state: which side is expanded (null = all collapsed)
+  const [expandedHeader, setExpandedHeader] = useState<"left" | "right" | null>(null);
+
+  // Rename state
+  const [editingSide, setEditingSide] = useState<"left" | "right" | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
+
+  const startRename = useCallback((side: "left" | "right") => {
+    const current = side === "left" ? leftFile : rightFile;
+    if (!current) return;
+    setEditingSide(side);
+    // Only edit the filename portion
+    const filename = current.split("/").pop() || current;
+    setEditValue(filename);
+  }, [leftFile, rightFile]);
+
+  const commitRename = useCallback(() => {
+    if (!editingSide) return;
+    const trimmed = editValue.trim();
+    if (trimmed) {
+      // Replace only the filename portion, keeping the path
+      const current = editingSide === "left" ? leftFile : rightFile;
+      if (current) {
+        const parts = current.split("/");
+        parts[parts.length - 1] = trimmed;
+        const newPath = parts.join("/");
+        if (editingSide === "left") setLeftFile(newPath);
+        else setRightFile(newPath);
+      }
+    }
+    setEditingSide(null);
+  }, [editingSide, editValue, leftFile, rightFile]);
+
+  const cancelRename = useCallback(() => {
+    setEditingSide(null);
+  }, []);
+
+  // Focus rename input when it appears
+  useEffect(() => {
+    if (editingSide && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [editingSide]);
+
+  // Auto-collapse header when clicking outside
+  useEffect(() => {
+    if (!expandedHeader) return;
+    const handleClick = (e: MouseEvent) => {
+      // Check if click is inside a panel-header
+      const target = e.target as HTMLElement;
+      if (target.closest(".panel-header")) return;
+      setExpandedHeader(null);
+    };
+    window.addEventListener("click", handleClick);
+    return () => window.removeEventListener("click", handleClick);
+  }, [expandedHeader]);
+
   const showDiff = leftContent !== null && rightContent !== null;
+
+  /** Extract just the filename from a path */
+  const getFilename = (path: string) => path.split("/").pop() || path;
+  /** Check if path has directory components */
+  const hasPath = (path: string) => path.includes("/");
+
+  const renderPanelHeader = (side: "left" | "right") => {
+    const file = side === "left" ? leftFile : rightFile;
+    const content = side === "left" ? leftContent : rightContent;
+    const placeholder = side === "left" ? "Key" : "Submission";
+    const isEditing = editingSide === side;
+    const isExpanded = expandedHeader === side;
+
+    const filename = file ? getFilename(file) : null;
+
+    return (
+      <div
+        className={`panel-header ${isExpanded ? "expanded" : "collapsed"}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {isExpanded ? (
+          <>
+            <span className="panel-title" title={file || undefined}>
+              {file || placeholder}
+            </span>
+            <div className="panel-header-actions">
+              {content !== null && (
+                <button
+                  className="clear-btn"
+                  onClick={() => handleClear(side)}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="panel-header-folded">
+            {file && hasPath(file) ? (
+              <span
+                className="panel-header-ellipsis"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpandedHeader(side);
+                }}
+                title="Show full path"
+              >
+                .../
+              </span>
+            ) : null}
+            {isEditing ? (
+              <input
+                ref={renameInputRef}
+                className="rename-input"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitRename();
+                  if (e.key === "Escape") cancelRename();
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <span
+                className="panel-header-filename"
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  file && startRename(side);
+                }}
+                title={file ? "Double-click to rename" : undefined}
+              >
+                {filename || placeholder}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="app">
       {error && (
         <div className="error-toast">{error}</div>
       )}
-      <div className="panels">
+      <div className="panels" ref={panelsRef}>
         {/* Left Panel - Key */}
-        <div className="panel">
-          <div className="panel-header">
-            <span className="panel-title">
-              {leftFile ? leftFile : "Key"}
-            </span>
-            {leftContent !== null && (
-              <button
-                className="clear-btn"
-                onClick={() => handleClear("left")}
-              >
-                Clear
-              </button>
-            )}
-          </div>
+        <div className="panel" style={{ flex: `0 0 ${splitPercent}%` }}>
+          {renderPanelHeader("left")}
           {/* Spacer to match NavigationControls height on right panel */}
           {rightIsFolder && rightSubmissions && showDiff && (
             <div className="nav-spacer" />
@@ -347,6 +537,11 @@ function App() {
               rightContent={rightContent}
               side="left"
               onDeleteBlock={handleDeleteBlock}
+              selectedBlock={selectedBlock}
+              onSelectBlock={handleSelectBlock}
+              hoveredBlock={hoveredBlock}
+              onHoverBlock={setHoveredBlock}
+              showLineNumbers
               scrollRef={leftScrollRef}
             />
           ) : leftLoading ? (
@@ -374,31 +569,22 @@ function App() {
           )}
         </div>
 
+        {/* Draggable divider */}
+        <div
+          className="panel-divider"
+          onPointerDown={onDividerPointerDown}
+          onPointerMove={onDividerPointerMove}
+          onPointerUp={onDividerPointerUp}
+        />
+
         {/* Right Panel - Submission(s) */}
-        <div className="panel">
-          <div className="panel-header">
-            <span className="panel-title">
-              {rightIsFolder
-                ? rightFile || "Submissions"
-                : rightFile
-                  ? rightFile
-                  : "Submission"}
-            </span>
-            {rightContent !== null && (
-              <button
-                className="clear-btn"
-                onClick={() => handleClear("right")}
-              >
-                Clear
-              </button>
-            )}
-          </div>
+        <div className="panel" style={{ flex: 1 }}>
+          {renderPanelHeader("right")}
           {/* Navigation controls for folder mode */}
           {rightIsFolder && rightSubmissions && (
             <NavigationControls
               currentIndex={rightCurrentIndex}
               totalFiles={rightSubmissions.length}
-              currentFile={rightSubmissions[rightCurrentIndex].relativePath}
               onPrevious={() =>
                 setRightCurrentIndex((prev) => Math.max(0, prev - 1))
               }
@@ -415,6 +601,10 @@ function App() {
               rightContent={rightContent}
               side="right"
               onDeleteBlock={handleDeleteBlock}
+              selectedBlock={selectedBlock}
+              onSelectBlock={handleSelectBlock}
+              hoveredBlock={hoveredBlock}
+              onHoverBlock={setHoveredBlock}
               scrollRef={rightScrollRef}
             />
           ) : rightLoading ? (

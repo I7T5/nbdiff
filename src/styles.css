@@ -5,11 +5,137 @@
   box-sizing: border-box;
 }
 
+/* ── Color tokens ── */
+:root {
+  color-scheme: light dark;
+
+  /* Dark mode (default) */
+  --bg: #1a1a1c;
+  --bg-secondary: rgba(255, 255, 255, 0.03);
+  --bg-tertiary: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.12);
+
+  --text-primary: #e5e5e7;
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-tertiary: rgba(255, 255, 255, 0.35);
+  --text-quaternary: rgba(255, 255, 255, 0.2);
+  --text-quinary: rgba(255, 255, 255, 0.1);
+
+  /* Interactive */
+  --hover-bg: rgba(255, 255, 255, 0.06);
+  --hover-bg-strong: rgba(255, 255, 255, 0.1);
+  --active-bg: rgba(255, 255, 255, 0.12);
+
+  /* Accent */
+  --accent: rgba(10, 132, 255, 1);
+  --accent-bg: rgba(10, 132, 255, 0.06);
+  --accent-border: rgba(10, 132, 255, 0.5);
+  --accent-border-strong: rgba(10, 132, 255, 0.8);
+
+  /* Diff colors */
+  --added-bg: rgba(48, 209, 88, 0.12);
+  --added-fg: rgba(48, 209, 88, 0.9);
+  --added-char-bg: rgba(48, 209, 88, 0.3);
+  --added-char-fg: #5ae97a;
+  --added-selected-bg: rgba(48, 209, 88, 0.16);
+
+  --removed-bg: rgba(255, 69, 58, 0.12);
+  --removed-fg: rgba(255, 69, 58, 0.85);
+  --removed-char-bg: rgba(255, 69, 58, 0.3);
+  --removed-char-fg: #ff8a84;
+  --removed-decoration: rgba(255, 69, 58, 0.4);
+  --removed-char-decoration: rgba(255, 69, 58, 0.5);
+  --removed-selected-bg: rgba(255, 69, 58, 0.16);
+
+  --modified-bg: rgba(255, 214, 10, 0.06);
+  --modified-selected-bg: rgba(255, 214, 10, 0.1);
+
+  --error-bg: rgba(255, 69, 58, 0.9);
+
+  /* Block interaction */
+  --block-hover-border: rgba(255, 255, 255, 0.15);
+  --block-hover-bg: rgba(255, 255, 255, 0.04);
+  --block-selected-border: rgba(10, 132, 255, 0.6);
+  --block-selected-bg: rgba(10, 132, 255, 0.04);
+
+  /* Line numbers */
+  --line-number-fg: rgba(255, 255, 255, 0.18);
+
+  /* Scrollbar */
+  --scrollbar-thumb: rgba(255, 255, 255, 0.1);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.18);
+
+  /* Dropzone */
+  --dropzone-border: rgba(255, 255, 255, 0.1);
+  --dropzone-label: rgba(255, 255, 255, 0.3);
+  --dropzone-hint: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Light mode ── */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f5f5f7;
+    --bg-secondary: rgba(0, 0, 0, 0.02);
+    --bg-tertiary: rgba(0, 0, 0, 0.04);
+    --border: rgba(0, 0, 0, 0.1);
+    --border-strong: rgba(0, 0, 0, 0.15);
+
+    --text-primary: #1d1d1f;
+    --text-secondary: rgba(0, 0, 0, 0.55);
+    --text-tertiary: rgba(0, 0, 0, 0.35);
+    --text-quaternary: rgba(0, 0, 0, 0.2);
+    --text-quinary: rgba(0, 0, 0, 0.08);
+
+    --hover-bg: rgba(0, 0, 0, 0.04);
+    --hover-bg-strong: rgba(0, 0, 0, 0.07);
+    --active-bg: rgba(0, 0, 0, 0.1);
+
+    --accent: rgba(0, 122, 255, 1);
+    --accent-bg: rgba(0, 122, 255, 0.06);
+    --accent-border: rgba(0, 122, 255, 0.4);
+    --accent-border-strong: rgba(0, 122, 255, 0.7);
+
+    --added-bg: rgba(40, 167, 69, 0.1);
+    --added-fg: rgba(30, 130, 54, 0.95);
+    --added-char-bg: rgba(40, 167, 69, 0.22);
+    --added-char-fg: #1a7f37;
+    --added-selected-bg: rgba(40, 167, 69, 0.15);
+
+    --removed-bg: rgba(215, 58, 73, 0.08);
+    --removed-fg: rgba(180, 40, 55, 0.9);
+    --removed-char-bg: rgba(215, 58, 73, 0.2);
+    --removed-char-fg: #a0111f;
+    --removed-decoration: rgba(215, 58, 73, 0.35);
+    --removed-char-decoration: rgba(215, 58, 73, 0.4);
+    --removed-selected-bg: rgba(215, 58, 73, 0.12);
+
+    --modified-bg: rgba(191, 135, 0, 0.06);
+    --modified-selected-bg: rgba(191, 135, 0, 0.1);
+
+    --error-bg: rgba(215, 58, 73, 0.9);
+
+    --block-hover-border: rgba(0, 0, 0, 0.18);
+    --block-hover-bg: rgba(0, 0, 0, 0.035);
+    --block-selected-border: rgba(0, 122, 255, 0.5);
+    --block-selected-bg: rgba(0, 122, 255, 0.04);
+
+    --line-number-fg: rgba(0, 0, 0, 0.2);
+
+    --scrollbar-thumb: rgba(0, 0, 0, 0.12);
+    --scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
+
+    --dropzone-border: rgba(0, 0, 0, 0.12);
+    --dropzone-label: rgba(0, 0, 0, 0.35);
+    --dropzone-hint: rgba(0, 0, 0, 0.2);
+  }
+}
+
 /* ── Base ── */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-  background: #1a1a1c;
-  color: #e5e5e7;
+  background: var(--bg);
+  color: var(--text-primary);
   height: 100vh;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
@@ -35,7 +161,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
-  background: rgba(255, 69, 58, 0.9);
+  background: var(--error-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   color: #fff;
@@ -58,37 +184,136 @@ body {
   display: flex;
   flex: 1;
   overflow: hidden;
-  gap: 1px;
-  background: rgba(255, 255, 255, 0.06);
 }
 
 .panel {
-  flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #1a1a1c;
+  background: var(--bg);
+  min-width: 0;
+}
+
+/* ── Draggable divider ── */
+.panel-divider {
+  width: 1px;
+  flex-shrink: 0;
+  background: var(--border);
+  cursor: col-resize;
+  position: relative;
+}
+
+/* Invisible wider hit area for easy grabbing */
+.panel-divider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  right: -3px;
+}
+
+.panel-divider:hover {
+  background: var(--border-strong);
+}
+
+.panel-divider:active {
+  background: var(--active-bg);
 }
 
 /* ── Panel header ── */
 .panel-header {
-  padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-secondary);
+  border-bottom: 0.5px solid var(--border);
   font-size: 12px;
   flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  overflow: hidden;
+  transition: padding 0.15s ease;
+}
+
+.panel-header.expanded {
+  padding: 6px 14px;
+}
+
+.panel-header.collapsed {
+  padding: 2px 14px;
+  height: 22px;
+}
+
+/* Folded view: .../filename */
+.panel-header-folded {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  gap: 0;
+}
+
+.panel-header-ellipsis {
+  color: var(--text-quaternary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.panel-header-ellipsis:hover {
+  color: var(--text-secondary);
+}
+
+.panel-header-filename {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+  min-width: 0;
+}
+
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .panel-title {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-tertiary);
+  font-size: 11px;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   letter-spacing: -0.01em;
+  cursor: default;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Rename input ── */
+.rename-input {
+  background: var(--hover-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 3px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 4px;
+  outline: none;
+  min-width: 60px;
+  max-width: 200px;
+}
+
+.rename-input:focus {
+  border-color: var(--accent-border-strong);
+  background: var(--hover-bg-strong);
 }
 
 /* ── Drop zone ── */
@@ -102,20 +327,20 @@ body {
 }
 
 .dropzone.empty {
-  border: 1.5px dashed rgba(255, 255, 255, 0.1);
+  border: 1.5px dashed var(--dropzone-border);
   margin: 14px;
   border-radius: 12px;
 }
 
 .dropzone.empty:hover,
 .dropzone.drag-over {
-  border-color: rgba(10, 132, 255, 0.5);
-  background: rgba(10, 132, 255, 0.06);
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
 }
 
 .dropzone-label {
   text-align: center;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--dropzone-label);
 }
 
 .dropzone-label .icon {
@@ -131,7 +356,7 @@ body {
 
 .dropzone-label .hint {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--dropzone-hint);
   margin-top: 4px;
   font-weight: 400;
 }
@@ -162,12 +387,12 @@ body {
 }
 
 .content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 
 .content::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* ── Diff lines ── */
@@ -177,36 +402,53 @@ body {
   white-space: pre-wrap;
   word-break: break-word;
   position: relative;
+  display: flex;
+}
+
+.line-number {
+  display: inline-block;
+  width: 28px;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: 6px;
+  color: var(--line-number-fg);
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.line-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .diff-line.unchanged {
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--text-primary);
 }
 
 /* Fully added line */
 .diff-line.added {
-  background: rgba(48, 209, 88, 0.12);
-  color: rgba(48, 209, 88, 0.9);
+  background: var(--added-bg);
+  color: var(--added-fg);
 }
 
 /* Fully removed line */
 .diff-line.removed {
-  background: rgba(255, 69, 58, 0.12);
-  color: rgba(255, 69, 58, 0.85);
+  background: var(--removed-bg);
+  color: var(--removed-fg);
   text-decoration: line-through;
-  text-decoration-color: rgba(255, 69, 58, 0.4);
+  text-decoration-color: var(--removed-decoration);
 }
 
 /* Modified line */
 .diff-line.modified {
-  background: rgba(255, 214, 10, 0.06);
-  color: rgba(255, 255, 255, 0.75);
+  background: var(--modified-bg);
+  color: var(--text-primary);
 }
 
 /* Character-level: inserted */
 .char-inserted {
-  background: rgba(48, 209, 88, 0.3);
-  color: #5ae97a;
+  background: var(--added-char-bg);
+  color: var(--added-char-fg);
   border-radius: 2px;
   padding: 0 1px;
   font-weight: 600;
@@ -214,12 +456,12 @@ body {
 
 /* Character-level: deleted */
 .char-deleted {
-  background: rgba(255, 69, 58, 0.3);
-  color: #ff8a84;
+  background: var(--removed-char-bg);
+  color: var(--removed-char-fg);
   border-radius: 2px;
   padding: 0 1px;
   text-decoration: line-through;
-  text-decoration-color: rgba(255, 69, 58, 0.5);
+  text-decoration-color: var(--removed-char-decoration);
   font-weight: 600;
 }
 
@@ -230,7 +472,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--text-tertiary);
   font-size: 13px;
   font-weight: 500;
 }
@@ -238,8 +480,8 @@ body {
 .spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.08);
-  border-top-color: rgba(10, 132, 255, 0.7);
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.75s linear infinite;
 }
@@ -250,9 +492,9 @@ body {
 
 /* ── Clear button ── */
 .clear-btn {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--hover-bg);
   border: none;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-tertiary);
   cursor: pointer;
   font-size: 11px;
   font-weight: 500;
@@ -262,35 +504,36 @@ body {
 }
 
 .clear-btn:hover {
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  background: var(--hover-bg-strong);
 }
 
 /* ── Navigation controls ── */
 .nav-controls {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 5px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+  padding: 3px 14px;
+  background: var(--bg-secondary);
+  border-bottom: 0.5px solid var(--border);
   font-size: 12px;
   flex-shrink: 0;
-  height: 30px;
+  height: 24px;
 }
 
 /* Spacer on left panel to align with nav-controls on right */
 .nav-spacer {
-  height: 30px;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+  height: 24px;
+  background: var(--bg-secondary);
+  border-bottom: 0.5px solid var(--border);
   flex-shrink: 0;
 }
 
 .nav-btn {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--hover-bg);
   border: none;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 11px;
   padding: 2px 8px;
@@ -300,8 +543,8 @@ body {
 }
 
 .nav-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.85);
+  background: var(--active-bg);
+  color: var(--text-primary);
 }
 
 .nav-btn:disabled {
@@ -310,48 +553,44 @@ body {
 }
 
 .nav-counter {
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
   min-width: 48px;
   text-align: center;
   font-weight: 500;
 }
 
-.nav-filename {
-  color: rgba(255, 255, 255, 0.55);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  font-weight: 500;
-}
-
-/* ── Delete block button ── */
-.delete-block-btn {
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.08);
-  border: none;
-  color: rgba(255, 255, 255, 0.35);
+/* ── Input block group ── */
+.diff-block {
   cursor: pointer;
-  font-size: 13px;
-  width: 18px;
-  height: 18px;
-  line-height: 16px;
-  text-align: center;
-  border-radius: 5px;
-  padding: 0;
-  opacity: 0;
-  transition: all 0.15s ease;
+  border-left: 2px solid transparent;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.diff-line:hover .delete-block-btn {
-  opacity: 1;
+.diff-block:hover,
+.diff-block.hovered {
+  border-left-color: var(--block-hover-border);
+  background: var(--block-hover-bg);
 }
 
-.delete-block-btn:hover {
-  background: rgba(255, 69, 58, 0.8);
-  color: #fff;
+/* Selected block */
+.diff-block.selected {
+  border-left-color: var(--block-selected-border);
+  background: var(--block-selected-bg);
+}
+
+.diff-block.selected .diff-line.unchanged {
+  background: var(--block-selected-bg);
+}
+
+.diff-block.selected .diff-line.added {
+  background: var(--added-selected-bg);
+}
+
+.diff-block.selected .diff-line.removed {
+  background: var(--removed-selected-bg);
+}
+
+.diff-block.selected .diff-line.modified {
+  background: var(--modified-selected-bg);
 }

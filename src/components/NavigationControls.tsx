@@ -1,7 +1,6 @@
 interface NavigationControlsProps {
   currentIndex: number;
   totalFiles: number;
-  currentFile: string;
   onPrevious: () => void;
   onNext: () => void;
 }
@@ -9,7 +8,6 @@ interface NavigationControlsProps {
 export default function NavigationControls({
   currentIndex,
   totalFiles,
-  currentFile,
   onPrevious,
   onNext,
 }: NavigationControlsProps) {
@@ -37,9 +35,6 @@ export default function NavigationControls({
       >
         →
       </button>
-      <span className="nav-filename" title={currentFile}>
-        {currentFile}
-      </span>
     </div>
   );
 }
