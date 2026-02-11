@@ -2,12 +2,12 @@
 
 A desktop app for visually diffing Mathematica notebooks (`.nb` files). Built for faster grading — drop in a solution key and a student submission, and instantly see what's different.
 
-![Tauri](https://img.shields.io/badge/Tauri-v2-blue) ![React](https://img.shields.io/badge/React-19-61dafb) ![Platform](https://img.shields.io/badge/macOS-aarch64-lightgrey)
+![Tauri](https://img.shields.io/badge/Tauri-v2-blue) ![React](https://img.shields.io/badge/React-19-61dafb) ![macOS](https://img.shields.io/badge/macOS-aarch64-lightgrey) ![Windows](https://img.shields.io/badge/Windows-x86_64-lightgrey)
 
 ## How it works
 
 1. **Drop** a key/solution `.nb` file on the left panel
-2. **Drop** a student submission `.nb` file on the right panel
+2. **Drop** a student submission `.nb` file or a folder containing `.nb` files on the right panel
 3. The app extracts input cells from each notebook using Wolfram Engine, then displays a **color-coded diff**:
    - 🟢 **Green** — lines added in the submission
    - 🔴 **Red** — lines removed (present in key but not submission)
@@ -80,6 +80,6 @@ nbdiff/
 
 ## Roadmap
 
-- [ ] Accept a folder of student submissions on the right panel
-- [ ] Arrow-key navigation between students for rapid grading
-- [ ] Word-level diff highlighting within changed lines
+- [x] Accept a folder of student submissions on the right panel
+- [x] Arrow-key navigation between students for rapid grading
+- [x] Word-level diff highlighting within changed lines
