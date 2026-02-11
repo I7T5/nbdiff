@@ -136,6 +136,12 @@ jobs:
             - **macOS** (Apple Silicon): `.dmg` file
             - **Windows**: `.msi` installer or `.exe` setup
 
+            ### macOS installation
+            After dragging nbdiff to Applications, macOS may say the app is "damaged" because it is not code-signed. To fix this, run in Terminal:
+            ```
+            xattr -cr /Applications/nbdiff.app
+            ```
+
             ### Requirements
             - [Wolfram Engine](https://www.wolfram.com/engine/) or Mathematica must be installed on the machine
           files: release-assets/*
